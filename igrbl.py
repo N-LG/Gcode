@@ -14,16 +14,28 @@ def dep0():
     posz=0
     envoiecommande('G0X'+str(posx)+'Y'+str(posy)+'Z'+str(posz))
 
-def deppos():
+def deppos1():
     global posx
     global posy
     global posz
-    global consx
-    global consy
-    global consz
-    posx=float(consx.get())
-    posy=float(consy.get())
-    posz=float(consz.get())
+    global consx1
+    global consy1
+    global consz1
+    posx=float(consx1.get())
+    posy=float(consy1.get())
+    posz=float(consz1.get())
+    envoiecommande('G0X'+str(posx)+'Y'+str(posy)+'Z'+str(posz))
+
+def deppos2():
+    global posx
+    global posy
+    global posz
+    global consx2
+    global consy2
+    global consz2
+    posx=float(consx2.get())
+    posy=float(consy2.get())
+    posz=float(consz2.get())
     envoiecommande('G0X'+str(posx)+'Y'+str(posy)+'Z'+str(posz))
 
 def depxp():
@@ -96,7 +108,21 @@ def script():
         if i!="" and i[0]!=";" and i[0]!="(" and i[0]!="%" :
             envoiecommande(i)
 
+def reset():
+    global port
+    port.close()
+    init_com()
+    envoiecommande("?")
 
+def init_com():
+    global port
+    port = serial.Serial(nomport.get(),115200)
+    port.bytesize = serial.EIGHTBITS
+    port.parity =serial.PARITY_NONE
+    port.stopbits = serial.STOPBITS_ONE
+    port.timeout = 10
+    time.sleep(1)
+    port.read(port.inWaiting())
 
 #initalise l'ecran
 fen = Tk()
@@ -120,42 +146,59 @@ boutonyp.grid(row=0, column=1)
 boutonym.grid(row=2, column=1)
 boutonzp.grid(row=0, column=2)
 boutonzm.grid(row=2, column=0)
-panel.place(x=10,y=50)
+panel.place(x=10,y=40)
 
 texte1 = Label (fen, text = "pas:")
-pas= Entry(fen,width=5)
-texte1.place(x = 200, y = 50)
-pas.place(x = 200, y = 76)
+pas= Entry(fen,width=8)
+texte1.place(x = 200, y = 40)
+pas.place(x = 200, y = 56)
+
+texte3 = Label (fen, text = "vitesse:")
+vitesse= Entry(fen,width=8)
+texte3.place(x = 200, y = 76)
+vitesse.place(x = 200, y = 92)
 
 texte2 = Label (fen, text = "port:")
-port= Entry(fen)
-texte2.place(x = 0, y = 0)
-port.place(x = 80, y = 0)
+nomport= Entry(fen)
+boutonreset = Button (fen, text = "raz", command=reset)
+texte2.place(x = 0, y = 4)
+nomport.place(x = 40, y = 4)
+boutonreset.place(x =220, y = 0)
+
+
+boutongo1 = Button (fen, text = "go:", command=deppos1)
+consx1= Entry(fen,width=5)
+consy1= Entry(fen,width=5)
+consz1= Entry(fen,width=5)
+boutongo1.place(x = 0, y =160)
+consx1.place(x = 80, y =164)
+consy1.place(x = 140, y =164)
+consz1.place(x = 200, y =164)
+
+boutongo2 = Button (fen, text = "go:", command=deppos2)
+consx2= Entry(fen,width=5)
+consy2= Entry(fen,width=5)
+consz2= Entry(fen,width=5)
+boutongo2.place(x = 0, y =200)
+consx2.place(x = 80, y =204)
+consy2.place(x = 140, y =204)
+consz2.place(x = 200, y =204)
+
 
 boutonscript= Button (fen, text = "script", command=script)
 nomscript= Entry(fen)
-boutonscript.place(x = 0, y =200)
-nomscript.place(x = 80, y =204)
-
-
-boutongo = Button (fen, text = "go:", command=deppos)
-consx= Entry(fen,width=5)
-consy= Entry(fen,width=5)
-consz= Entry(fen,width=5)
-boutongo.place(x = 0, y =160)
-consx.place(x = 80, y =164)
-consy.place(x = 140, y =164)
-consz.place(x = 200, y =164)
+boutonscript.place(x = 0, y =240)
+nomscript.place(x = 80, y =244)
 
 
 boutonex1 = Button (fen, text = "ex", command=exec1)
 boutonex2 = Button (fen, text = "ex", command=exec2)
 commande1= Entry(fen)
 commande2= Entry(fen)
-boutonex1.place(x = 0, y = 240)
-boutonex2.place(x = 0, y = 280)
-commande1.place(x =80, y = 244)
-commande2.place(x =80, y = 284)
+boutonex1.place(x = 0, y = 280)
+boutonex2.place(x = 0, y = 320)
+commande1.place(x =80, y = 284)
+commande2.place(x =80, y = 324)
 
 
 
@@ -165,21 +208,19 @@ posx = float(0)
 posy = float(0)
 posz = float(0)
 pas.insert(0, "5")
-consx.insert(0, "0")
-consy.insert(0, "0")
-consz.insert(0, "0")
-port.insert(0, sys.argv[1])
-nomscript.insert(0, sys.argv[2])
+vitesse.insert(0,"1000")
+consx1.insert(0, "0")
+consy1.insert(0, "0")
+consz1.insert(0, "0")
+consx2.insert(0, "100")
+consy2.insert(0, "100")
+consz2.insert(0, "100")
+nomport.insert(0, sys.argv[1])
+#nomscript.insert(0, sys.argv[2])
 
 
 #iniatilse la connexion série
-port = serial.Serial(sys.argv[1],115200)
-port.bytesize = serial.EIGHTBITS
-port.parity =serial.PARITY_NONE
-port.stopbits = serial.STOPBITS_ONE
-port.timeout = 10
-time.sleep(2)
-port.read(port.inWaiting())
+init_com()
 
 
 #démarre l'ecran
