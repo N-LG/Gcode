@@ -12,7 +12,7 @@ def dep0():
     posx=0
     posy=0
     posz=0
-    envoiecommande('G0X'+str(posx)+'Y'+str(posy)+'Z'+str(posz))
+    envoiecommande('G0X'+str(posx)+'Y'+str(posy)+'Z'+str(posz),TRUE)
 
 def deppos1():
     global posx
@@ -24,7 +24,7 @@ def deppos1():
     posx=float(consx1.get())
     posy=float(consy1.get())
     posz=float(consz1.get())
-    envoiecommande('G0X'+str(posx)+'Y'+str(posy)+'Z'+str(posz))
+    envoiecommande('G0X'+str(posx)+'Y'+str(posy)+'Z'+str(posz),TRUE)
 
 def deppos2():
     global posx
@@ -36,52 +36,53 @@ def deppos2():
     posx=float(consx2.get())
     posy=float(consy2.get())
     posz=float(consz2.get())
-    envoiecommande('G0X'+str(posx)+'Y'+str(posy)+'Z'+str(posz))
+    envoiecommande('G0X'+str(posx)+'Y'+str(posy)+'Z'+str(posz),TRUE)
 
 def depxp():
     global posx
     global pas
     posx = posx + float(pas.get())
-    envoiecommande('G0X'+str(posx))
+    envoiecommande('G0X'+str(posx),TRUE)
 def depxm():
     global posx
     global pas
     posx = posx - float(pas.get())
-    envoiecommande('G0X'+str(posx))
+    envoiecommande('G0X'+str(posx),TRUE)
 def depyp():
     global posy
     global pas
     posy = posy + float(pas.get())
-    envoiecommande('G0Y'+str(posy))
+    envoiecommande('G0Y'+str(posy),TRUE)
 def depym():
     global posy
     global pas
     posy = posy - float(pas.get())
-    envoiecommande('G0Y'+str(posy))
+    envoiecommande('G0Y'+str(posy),TRUE)
 def depzp():
     global posz
     global pas
     posz = posz + float(pas.get())
-    envoiecommande('G0Z'+str(posz))
+    envoiecommande('G0Z'+str(posz),TRUE)
 def depzm():
     global posz
     global pas
     posz = posz - float(pas.get())
-    envoiecommande('G0Z'+str(posz))
+    envoiecommande('G0Z'+str(posz),TRUE)
 
 
 
-def envoiecommande(texte):
+def envoiecommande(texte,fin):
     status="runs"
     print(texte)
+    print(str(fin))
     time.sleep(0.1)
     port.read(port.inWaiting())       
     port.write(bytes(texte+"\n",'utf-8'))
     time.sleep(0.5)
     print(port.read(port.inWaiting()))
 
-    #attend que la machine soit "Idle"
-    while status!=b'<Idle':
+    #attend que la machine soit "Idle" ou Alarm
+    while (status!=b'<Idle' and status!=b'<Alar' and fin):
         time.sleep(0.1)
         port.read(port.inWaiting())       
         port.write(bytes("?\n",'utf-8'))       
@@ -92,27 +93,35 @@ def envoiecommande(texte):
 
 def exec1():
     global commande1
-    envoiecommande(commande1.get())
+    envoiecommande(commande1.get(),TRUE)
 
 def exec2():
     global commande2
-    envoiecommande(commande2.get())
+    envoiecommande(commande2.get(),TRUE)
 
 def script():
     global nomscript
+    global okpause
     fichier= open(nomscript.get(),"r")
     gcode = fichier.read().split("\n")
     for i in gcode:
         status="Run"
         #seulement si ce n'est pas une ligne vide ou un commentaire
         if i!="" and i[0]!=";" and i[0]!="(" and i[0]!="%" :
-            envoiecommande(i)
+            envoiecommande(i,okpause)
+        #si c'est un commentaire simple'
+        if i!="" and i[0]==";" and i[1]!="!" :
+            print(i)
+        #si c'est une zone d'arret'
+        if i!="" and i[0]==";" and i[1]=="!" :
+            print(i)
+
 
 def reset():
     global port
     port.close()
     init_com()
-    envoiecommande("?")
+    envoiecommande("?",TRUE)
 
 def init_com():
     global port
@@ -124,10 +133,37 @@ def init_com():
     time.sleep(1)
     port.read(port.inWaiting())
 
+
+def rep():
+    global nbrepx
+    global nbrepy
+    global direpx
+    global direpy
+    retourzeroX = str(int(direpx.get())*(int(nbrepx.get())-1))
+    retourzeroY = str(int(direpy.get())*(int(nbrepy.get())-1))
+    j=0
+    while j<int(nbrepy.get()):
+    
+        i=0
+        while i<int(nbrepx.get()):
+            reset()
+            #print("script ici")
+            script()
+            i=i+1
+            #print("G0X"+str(direpx.get())+"Y0") 
+            envoiecommande("G0X"+str(direpx.get())+"Y0",TRUE)
+        j=j+1
+        #print("G0X-"+retourzeroX+"Y"+str(direpy.get())) 
+        envoiecommande("G0X-"+retourzeroX+"Y"+str(direpy.get()),TRUE)
+    #print("G0X-"+retourzeroX+"Y-"+retourzeroY) 
+    envoiecommande("G0X-"+retourzeroX+"Y-"+retourzeroY,TRUE)
+        
+
+
 #initalise l'ecran
 fen = Tk()
 fen.title("Pilotage carte GRBL 3 axes")
-fen.geometry("300x400")
+fen.geometry("300x500")
 
 
 
@@ -185,12 +221,18 @@ consy2.place(x = 140, y =204)
 consz2.place(x = 200, y =204)
 
 
+
+#excution d'un script
 boutonscript= Button (fen, text = "script", command=script)
 nomscript= Entry(fen)
+okpause = tkinter.IntVar()
+checkpause= Checkbutton (fen, variable=okpause, onvalue=TRUE, offvalue=FALSE)
 boutonscript.place(x = 0, y =240)
 nomscript.place(x = 80, y =244)
+checkpause.place(x = 240, y =244)
 
 
+#execution d'une commande simple'
 boutonex1 = Button (fen, text = "ex", command=exec1)
 boutonex2 = Button (fen, text = "ex", command=exec2)
 commande1= Entry(fen)
@@ -200,9 +242,32 @@ boutonex2.place(x = 0, y = 320)
 commande1.place(x =80, y = 284)
 commande2.place(x =80, y = 324)
 
+#repetition d'un script
+repetition = Frame(fen)
+boutonrep = Button (fen, text = "repetition", command=rep)
+texte_repas = Label (repetition, text = "distance")
+texte_repnb = Label (repetition, text = "nombre")
+texte_repx = Label (repetition, text = "X")
+texte_repy = Label (repetition, text = "Y")
+
+nbrepx= Entry(repetition,width=6)
+nbrepy= Entry(repetition,width=6)
+direpx= Entry(repetition,width=6)
+direpy= Entry(repetition,width=6)
+boutonrep.place(x = 0, y = 380)
+texte_repnb.grid(row=0, column=1)
+texte_repas.grid(row=0, column=2)
 
 
+texte_repx.grid(row=1, column=0)
+texte_repy.grid(row=2, column=0)
+nbrepx.grid(row=1, column=1)
+nbrepy.grid(row=2, column=1)
+direpx.grid(row=1, column=2)
+direpy.grid(row=2, column=2)
+repetition.place(x=100,y=380)
 
+#-------------------------------------------------------------
 #initalise les variables globales
 posx = float(0)
 posy = float(0)
